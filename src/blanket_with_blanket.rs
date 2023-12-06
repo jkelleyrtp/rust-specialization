@@ -1,34 +1,27 @@
 use std::marker::PhantomData;
 
 trait NonPromote: Sized {
-    fn promote(&self) -> &Self;
-}
-
-impl<T> NonPromote for &&T {
     fn promote(&self) -> &Self {
         self
     }
 }
 
-trait SignalPromote: Clone + Copy {
-    fn promote(&self) -> Self;
-}
+impl<T> NonPromote for &&T {}
 
-impl<T: Clone + Copy> SignalPromote for T {
+trait SignalPromote: Clone + Copy {
     fn promote(&self) -> Self {
-        self.clone()
+        *self
     }
 }
+impl<T: Clone + Copy> SignalPromote for T {}
 
-struct Signal<T> {
-    inner: PhantomData<T>,
-}
+struct Signal<T>(PhantomData<T>);
+impl<T> Copy for Signal<T> {}
 impl<T> Clone for Signal<T> {
     fn clone(&self) -> Self {
-        Signal { inner: PhantomData }
+        Self(PhantomData)
     }
 }
-impl<T> Copy for Signal<T> {}
 
 struct SomeProps {
     a: i32,
@@ -41,4 +34,12 @@ fn it_works(props: &SomeProps) {
     let a = a.promote();
     let b = b.promote();
     let c = c.promote();
+
+    assert_a(a);
+    assert_b(b);
+    assert_c(c);
 }
+
+fn assert_a(b: i32) {}
+fn assert_b(b: &String) {}
+fn assert_c(b: Signal<String>) {}
